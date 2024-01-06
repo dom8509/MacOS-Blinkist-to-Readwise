@@ -8,6 +8,7 @@ the Blinkist website, logging in using the credentials provided and extracting t
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import NoSuchElementException
 from bs4 import BeautifulSoup
 import os
@@ -29,17 +30,54 @@ def extract_blinkist_highlights(blinkist_email, blinkist_password, should_keep_l
 
     # Prepare the webdriver to scrape Blinkist highlights
     options = Options()
-    options.add_argument(
-        'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36')
 
+    options.add_argument("--disable-blink-features")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--incognito")
-    if not show_chrome:  # hide the window if the user didn't choose to see it
-        options.add_argument("--headless")
-    options.add_argument("window-size=1024,768")
-    driver = webdriver.Chrome(options=options)
+
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+
+    # options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+
+    # chrome_path = "/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+    # # Erstelle den WebDriver für Chrome
+    # chrome_options = webdriver.ChromeOptions()
+    # chrome_options.binary_location = chrome_path
+    # chrome_options.add_argument("--remote-debugging-port=9222") 
+
+    # chrome_options.add_argument(
+    #     'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36')
+
+    # chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    # chrome_options.add_argument("--incognito")
+    # if not show_chrome:  # hide the window if the user didn't choose to see it
+    #     chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("window-size=1024,768")
+    # driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Safari(options)
     # driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'})
-    # driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    print(driver.execute_script("return navigator.webdriver;"))
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    print(driver.execute_script("return navigator.webdriver;"))
+
+    # driver.execute_cdp_cmd(
+    #     "Network.setUserAgentOverride",
+    #     {
+    #         "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    #         "AppleWebKit/537.36 (KHTML, like Gecko) "
+    #         "Chrome/83.0.4103.97 Safari/537.36"
+    #     },
+    # )
+    # driver.execute_cdp_cmd(
+    #     "Page.addScriptToEvaluateOnNewDocument",
+    #     {
+    #         "source": """
+    #         Object.defineProperty(navigator, 'webdriver', {
+    #         get: () => undefined
+    #         })
+    #     """
+    #     },
+    # )
 
     # Load the Blinkist login page
     print('Opening the Blinkist webpage...')
@@ -47,10 +85,17 @@ def extract_blinkist_highlights(blinkist_email, blinkist_password, should_keep_l
     driver.get(url)
     time.sleep(5)
 
+    print(driver.execute_script("return navigator.webdriver;")) 
+    print(driver.execute_script("return navigator.userAgent;"))
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    print(driver.execute_script("return navigator.webdriver;"))
+    print(driver.execute_script("delete Object.getPrototypeOf(navigator).webdriver;"))
+    print(driver.execute_script("return navigator.webdriver;"))
+
     # Allow cookies if prompted
     try:
-        found_cookies = driver.find_elements_by_class_name(
-            'cookie-disclaimer__cta')
+        found_cookies = driver.find_elements(
+            'css selector', '.cookie-disclaimer__cta')
         if len(found_cookies) > 0:
             found_cookies[0].click()
             time.sleep(5)
@@ -60,9 +105,9 @@ def extract_blinkist_highlights(blinkist_email, blinkist_password, should_keep_l
     # Enter Blinkist login and password, click login button
     print('Logging in into Blinkist...')
     try:
-        email_field = driver.find_element_by_name('login[email]')
-        password_field = driver.find_element_by_name('login[password]')
-        submit_button = driver.find_element_by_name('commit')
+        email_field = driver.find_element('name', 'login[email]')
+        password_field = driver.find_element('name', 'login[password]')
+        submit_button = driver.find_element('name', 'commit')
     except NoSuchElementException:
         print('Error: Could not find all required fields on the Blinkist login page.')
         return None
@@ -80,7 +125,7 @@ def extract_blinkist_highlights(blinkist_email, blinkist_password, should_keep_l
         return None
 
     # Order highlights by date (most recent ones first)
-    driver.find_elements_by_css_selector("a[data-order-by='date']")[0].click()
+    driver.find_elements('css selector', "a[data-order-by='date']")[0].click()
     time.sleep(5)
 
     def extract_highlights(driver):
@@ -140,8 +185,8 @@ def extract_blinkist_highlights(blinkist_email, blinkist_password, should_keep_l
     keep_loading = should_keep_loading(fetched_results)
     while keep_loading:
         try:
-            found_buttons = driver.find_elements_by_css_selector(
-                'a.text-markersV2__load-more[style="display: block;"')
+            found_buttons = driver.find_elements(
+                'css selector', 'a.text-markersV2__load-more[style="display: block;"')
             if len(found_buttons) > 0:
                 # Click on the load button to load more highlights, if any
                 found_buttons[0].click()
