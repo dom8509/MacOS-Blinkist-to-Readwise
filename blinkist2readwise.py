@@ -59,7 +59,7 @@ def get_highlight_object(fetched_object):
     # Function to prepare the highlight objects that will be uploaded to Readwise
     return {
         'text': fetched_object['highlight'],
-        'title': 'Blink: ' + fetched_object['book_title'],
+        'title': 'Blink - ' + fetched_object['book_title'],
         'image_url': 'https://upload.wikimedia.org/wikipedia/en/c/ca/Blinkist_logo.png',
         'source_type': 'book',
         'author': 'Blinkist'
