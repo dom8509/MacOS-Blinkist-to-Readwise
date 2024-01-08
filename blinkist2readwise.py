@@ -87,7 +87,7 @@ if res.code == 0:
     with open("tmp/blinkist_highlights.json", 'r') as file:
         fetched_highlights = json.load(file)
 
-        if len(fetched_highlights) > 0:
+        if len(fetched_highlights) == 0:
             print("Nothing to do -> all Readwise highlights are up to date.")
         elif READWISE_TOKEN is not None:
             # Prepare a new list of highlight objects from our previously fetched and sorted results
